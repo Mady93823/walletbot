@@ -61,82 +61,146 @@ bot.use(async (ctx, next) => {
 
 // --- Commands ---
 
+bot.command('del', async (ctx) => {
+    // Format: /del <userid>
+    const args = ctx.message.text.split(' ');
+    if (args.length !== 2) {
+        return ctx.reply('Usage: /del <userid>');
+    }
+
+    const targetId = parseInt(args[1]);
+    if (isNaN(targetId)) {
+        return ctx.reply('Invalid User ID. Must be a number.');
+    }
+
+    try {
+        const success = await UserService.deleteUser(targetId);
+        if (success) {
+            await ctx.reply(`✅ User ${targetId} deleted successfully.`);
+        } else {
+            await ctx.reply(`❌ User ${targetId} not found.`);
+        }
+    } catch (error: any) {
+        console.error('Delete error:', error);
+        await ctx.reply(`❌ Error deleting user: ${error.message}`);
+    }
+});
+
+bot.command('user', async (ctx) => {
+    try {
+        const users = await UserService.getAllUsers();
+        if (users.length === 0) {
+            return ctx.reply('No users found.');
+        }
+
+        let message = '👥 *User List*\n\n';
+    users.forEach(user => {
+        // Cast to any to handle potential missing type definition for username
+        const u = user as any;
+        const username = u.username ? `@${u.username}` : 'No username';
+        message += `User: ${username}\nID: \`${user.telegram_id.toString()}\`\n\n`;
+    });
+
+        await ctx.reply(message, { parse_mode: 'Markdown' });
+    } catch (error: any) {
+        console.error('List users error:', error);
+        await ctx.reply(`❌ Error listing users: ${error.message}`);
+    }
+});
+
 bot.start(async (ctx) => {
   resetSession(ctx.from.id);
   // Ensure user exists in DB
-  await UserService.getOrCreateUser(ctx.from.id);
+  const user = await UserService.getOrCreateUser(ctx.from.id, ctx.from.username);
   
-  // Send Welcome Image + Text + Web App Button
-  // Using a reliable placeholder image and standard Markdown
-  await ctx.replyWithPhoto(
-      'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80', 
-      {
-          caption: `💼 *Your Crypto Wallet Inside Telegram*\nFast • Secure • Professional\n\nTap below to open your wallet app 👇`,
-          parse_mode: 'Markdown',
-          reply_markup: {
-              inline_keyboard: [
-                  [
-                      { 
-                          text: '🚀 Open Wallet App', 
-                          web_app: { url: process.env.WEBAPP_URL || 'https://trae-wallet-demo.vercel.app' } 
-                      }
-                  ],
-                  ...Keyboards.onboarding.reply_markup.inline_keyboard
-              ]
+  // Check if wallet exists
+  if (user && user.wallet) {
+      // Wallet EXISTS: Show Welcome + Open App Button
+      await ctx.replyWithPhoto(
+          'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80', 
+          {
+              caption: `💼 *Your Crypto Wallet Inside Telegram*\nFast • Secure • Professional\n\nTap below to open your wallet app 👇`,
+              parse_mode: 'Markdown',
+              reply_markup: {
+                  inline_keyboard: [
+                      [
+                          { 
+                              text: '🚀 Open Wallet App', 
+                              web_app: { url: process.env.WEBAPP_URL || 'https://trae-wallet-demo.vercel.app' } 
+                          }
+                      ],
+                      // Include other options like Help/Restore if needed, but Dashboard is inside the App
+                      ...Keyboards.onboarding.reply_markup.inline_keyboard
+                  ]
+              }
           }
-      }
-  );
+      );
+  } else {
+      // Wallet DOES NOT EXIST: Prompt to Create
+      await ctx.replyWithPhoto(
+          'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80', 
+          {
+              caption: `👋 *Welcome to MyEWallet!*\n\nIt looks like you don't have a wallet yet.\nCreate a new wallet to start sending and receiving crypto securely.\n\n👇 **Start Here**`,
+              parse_mode: 'Markdown',
+              reply_markup: Keyboards.onboarding.reply_markup
+          }
+      );
+  }
+});
+
+// --- Actions ---
+
+bot.action('create_wallet', async (ctx) => {
+  try {
+    await ctx.answerCbQuery('Creating your wallet...');
+    await ctx.editMessageCaption('⏳ Creating your wallet, please wait...');
+    
+    // Check if wallet already exists to avoid errors
+    const user = await UserService.getOrCreateUser(ctx.from.id, ctx.from.username);
+    if (user && user.wallet) {
+        await ctx.editMessageCaption('✅ You already have a wallet!');
+        return;
+    }
+
+    const wallet = await WalletService.createWallet(ctx.from.id);
+    
+    await ctx.replyWithPhoto(
+        'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80', 
+        {
+            caption: `🎉 *Wallet Created Successfully!*\n\nAddress: \`${wallet.address}\`\n\nYour wallet is now ready to use. Tap below to access it!`,
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { 
+                            text: '🚀 Open Wallet App', 
+                            web_app: { url: process.env.WEBAPP_URL || 'https://trae-wallet-demo.vercel.app' } 
+                        }
+                    ]
+                ]
+            }
+        }
+    );
+  } catch (error: any) {
+    console.error('Wallet creation error:', error);
+    await ctx.reply(`❌ Failed to create wallet: ${error.message}`);
+  }
+});
+
+bot.action('restore_wallet', async (ctx) => {
+    await ctx.answerCbQuery('Restore feature coming soon!');
+});
+
+bot.action('help', async (ctx) => {
+    await ctx.answerCbQuery();
+    await ctx.reply('Need help? Contact our support team at @MyEWalletSupport');
 });
 
 // --- Actions ---
 
 // 1. Create Wallet -> Dashboard
-bot.action('create_wallet', async (ctx) => {
-  await ctx.answerCbQuery('Creating wallet...');
-  await ctx.sendChatAction('typing'); // UX improvement
-  
-  try {
-    const walletData = await WalletService.createWallet(ctx.from.id);
-    
-    // In a real app, show Private Key ONCE here!
-    await ctx.reply(
-        `⚠️ **SAVE YOUR PRIVATE KEY** ⚠️\n\n\`${walletData.privateKey}\`\n\nThis key is encrypted in our database, but you should keep a backup. We cannot recover it if you lose access.`,
-        { parse_mode: 'Markdown' }
-    );
-    
-    // Get wallet info for dashboard
-    const wallet = await WalletService.getWallet(ctx.from.id);
-    if (!wallet) throw new Error('Wallet creation failed');
-
-    const balance = await wallet.getBalance();
-
-    await ctx.reply(
-      Messages.dashboard(balance, 'ETH', wallet.address),
-      Keyboards.dashboard
-    );
-  } catch (e: any) {
-    if (e.message === 'Wallet already exists') {
-        const wallet = await WalletService.getWallet(ctx.from.id);
-        if (wallet) {
-            const balance = await wallet.getBalance();
-            await ctx.editMessageText(
-                Messages.dashboard(balance, 'ETH', wallet.address),
-                Keyboards.dashboard
-            );
-            return;
-        }
-    }
-    await ctx.reply(COPY.ERRORS.GENERIC);
-  }
-});
-
-bot.action('restore_wallet', async (ctx) => {
-    await ctx.answerCbQuery('Restore not implemented in this demo');
-});
-
-bot.action('help', async (ctx) => {
-    await ctx.answerCbQuery('Help section placeholder');
-});
+// Already handled above in the first create_wallet action, removing duplicate code
+// bot.action('create_wallet', ...);
 
 // 2. Dashboard Actions
 bot.action('receive', async (ctx) => {

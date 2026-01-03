@@ -15,6 +15,16 @@ A professional, hybrid Telegram Wallet that combines a native bot with a high-pe
   - **Backend**: Node.js, Telegraf, Express, Prisma (PostgreSQL).
   - **Frontend**: React, Vite, Tailwind CSS, Telegram Web App SDK.
 
+## Recent Updates
+
+- **Wallet Balance Auto-Repair**: Implemented logic to automatically detect and fix negative balances (resetting to default 1.0 ETH for testnet) ensuring data integrity between mock and real database values.
+- **Enhanced Token Management**:
+  - Added strict contract address validation for custom tokens (ERC-20, TRC-20, BEP-20).
+  - Implemented automatic fallback logo generation for tokens with broken or missing icons.
+- **UI/UX Refinements**:
+  - Fixed Asset Selection Modal z-index issues preventing overlap with navigation bars.
+  - Assets in the "Send" screen are now sorted by balance (descending) for easier access.
+
 ## Project Structure
 
 - `src/`: Backend bot and API logic.

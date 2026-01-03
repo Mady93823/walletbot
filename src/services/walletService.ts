@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import prisma from './prisma';
 import { encrypt, decrypt } from '../utils/encryption';
 import { UserService } from './userService';
+import { initializeAssets } from './assetService';
 
 // Use Sepolia Testnet Public RPC
 const RPC_URL = process.env.RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com';
@@ -30,6 +31,9 @@ export const WalletService = {
       }
     });
 
+    // Initialize default assets
+    await initializeAssets(newWallet.id);
+
     return {
       address: newWallet.address,
       privateKey: wallet.privateKey // Only returned once upon creation!
@@ -40,51 +44,31 @@ export const WalletService = {
     const user = await UserService.getUser(telegramId);
     if (!user || !user.wallet) return null;
 
-    const walletAddress = user.wallet.address;
+    // Capture wallet to a local variable to satisfy TS inside the closure
+    const wallet = user.wallet;
+    const walletAddress = wallet.address;
 
     // We usually just need the address for display
     // If we need the private key for signing, we decrypt it here
     return {
       address: walletAddress,
-      chain: user.wallet.chain || 'ETH',
-      getBalance: async () => {
-         try {
-            // --- TESTING MODE: DYNAMIC BALANCE ---
-            // Base Mock Balance: 1.0 ETH
-            // Actual Balance = 1.0 + Received - Sent
-            
-            const initialBalance = 1.0;
+      chain: wallet.chain || 'ETH',
+      getBalance: async (assetSymbol = 'ETH', chain = 'ETH') => {
+        // New Logic: Single Source of Truth = Asset Table
+        // This now returns the PRECISE decimal balance stored in the DB
+        const asset = await prisma.asset.findFirst({
+          where: { 
+            wallet_id: wallet.id,
+            symbol: assetSymbol,
+            chain: chain
+          }
+        });
 
-            // Calculate Sent Amount
-            const sent = await prisma.transaction.aggregate({
-                _sum: { amount: true },
-                where: { 
-                    user_id: user.id, 
-                    status: 'success',
-                    to_address: { not: 'unknown' } // 'unknown' marks received txs in our schema hack
-                }
-            });
-
-            // Calculate Received Amount
-            const received = await prisma.transaction.aggregate({
-                _sum: { amount: true },
-                where: { 
-                    user_id: user.id, 
-                    status: 'success',
-                    to_address: 'unknown'
-                }
-            });
-
-            const totalSent = sent._sum.amount ? parseFloat(sent._sum.amount.toString()) : 0;
-            const totalReceived = received._sum.amount ? parseFloat(received._sum.amount.toString()) : 0;
-            
-            const currentBalance = initialBalance + totalReceived - totalSent;
-
-            return currentBalance.toFixed(4);
-         } catch (e) {
-            console.error("Error fetching balance:", e);
-            return '0.000';
-         }
+        if (!asset) return '0.0';
+        
+        // Prisma Decimal returns as object or string depending on config, 
+        // but .toString() is safest
+        return asset.balance.toString();
       }
     };
   },

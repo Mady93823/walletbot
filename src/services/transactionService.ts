@@ -2,6 +2,7 @@
 import prisma from './prisma';
 import { WalletService } from './walletService';
 import { ethers } from 'ethers';
+import { Prisma } from '@prisma/client';
 
 // Use Sepolia Testnet Public RPC
 const RPC_URL = process.env.RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com';
@@ -55,12 +56,30 @@ export const TransactionService = {
 
     if (!user || !user.wallet) throw new Error('User or wallet not found');
 
+    // 0. Balance Check (Precise)
+    const walletData = await WalletService.getWallet(telegramId);
+    if (!walletData) throw new Error('Wallet data unavailable');
+
+    // Default to ETH for now, but scalable to other assets
+    const currentBalanceStr = await walletData.getBalance('ETH', 'ETH'); 
+    
+    // Use Prisma.Decimal for precise comparison
+    const currentBalance = new Prisma.Decimal(currentBalanceStr);
+    const amountDec = new Prisma.Decimal(amount);
+    const feeDec = new Prisma.Decimal('0.001'); // Fixed buffer
+
+    if (currentBalance.lessThan(amountDec.add(feeDec))) {
+       throw new Error(`Insufficient funds. Balance: ${currentBalance}, Required: ${amountDec.add(feeDec)}`);
+    }
+
     // 1. Create Pending Transaction Record
+    // Prisma Decimal field expects number, string or Decimal. 
+    // Passing string is safest for precision.
     const txRecord = await prisma.transaction.create({
       data: {
         user_id: user.id,
         to_address: to,
-        amount: amount,
+        amount: amount, 
         status: 'pending',
         chain: 'ETH'
       }
@@ -80,7 +99,9 @@ export const TransactionService = {
       
       if (isTestMode) {
           console.log(`[TEST MODE] Mocking send transaction to ${to} for ${amount} ETH`);
-          txHash = '0xMockTransactionHash' + Date.now(); // Fake Hash
+          // Use a realistic looking hash for UX testing (valid hex, 64 chars)
+          const randomHex = Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+          txHash = '0x' + randomHex; 
           // Simulate network delay
           await new Promise(resolve => setTimeout(resolve, 1000));
       } else {
@@ -119,6 +140,30 @@ export const TransactionService = {
                     tx_hash: txHash
                 }
             });
+
+            // UPDATE ASSET BALANCES (Precise)
+            // 1. Deduct from Sender
+            const amountDec = new Prisma.Decimal(amount);
+            const senderAsset = await prisma.asset.findFirst({
+                where: { wallet_id: user.wallet.id, symbol: 'ETH' } // Assuming ETH for now
+            });
+            if (senderAsset) {
+                await prisma.asset.update({
+                    where: { id: senderAsset.id },
+                    data: { balance: { decrement: amountDec } }
+                });
+            }
+
+            // 2. Add to Recipient
+            const recipientAsset = await prisma.asset.findFirst({
+                where: { wallet_id: recipientWallet.id, symbol: 'ETH' }
+            });
+            if (recipientAsset) {
+                await prisma.asset.update({
+                    where: { id: recipientAsset.id },
+                    data: { balance: { increment: amountDec } }
+                });
+            }
         }
       } catch (internalErr) {
           console.error('[TEST MODE] Failed to create recipient record:', internalErr);

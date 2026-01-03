@@ -13,6 +13,7 @@ datasource db {
 model User {
   id          String   @id @default(uuid())
   telegram_id BigInt   @unique
+  username    String?
   created_at  DateTime @default(now())
   
   wallet      Wallet?
@@ -30,8 +31,27 @@ model Wallet {
   chain                 String   @default("ETH")
   encrypted_private_key String
   created_at            DateTime @default(now())
+  assets                Asset[]
 
   @@map("wallets")
+}
+
+model Asset {
+  id             String   @id @default(uuid())
+  wallet_id      String
+  symbol         String
+  name           String
+  chain          String   // ETH, BSC, TRON, etc.
+  contract_addr  String?  // Null for native coins
+  decimals       Int      @default(18)
+  is_enabled     Boolean  @default(true)
+  is_custom      Boolean  @default(false)
+  balance        Decimal  @default(0.0)
+  logo_url       String?
+  wallet         Wallet   @relation(fields: [wallet_id], references: [id])
+  
+  @@unique([wallet_id, symbol, chain])
+  @@map("assets")
 }
 
 model Security {

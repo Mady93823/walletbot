@@ -16,8 +16,22 @@ declare global {
 }
 
 export const validateTelegramWebAppData = (req: Request, res: Response, next: NextFunction) => {
-  console.log('Auth Middleware - Body:', req.body); // DEBUG LOG
-  const { initData } = req.body;
+  // Try to get initData from Header (Preferred) or Body (Fallback)
+  const initData = req.header('X-Telegram-Init-Data') || req.body?.initData;
+
+  // Development Bypass (Optional: Remove in production)
+  // If no initData is provided and we are in dev mode, we can mock a user
+  // This helps with browser testing where Telegram initData is missing
+  if (!initData && process.env.NODE_ENV !== 'production') {
+      console.warn('Auth Warning: Missing initData in Dev Mode. Using Mock User.');
+      req.user = {
+          id: 123456789, // Mock Telegram ID
+          first_name: 'DevUser',
+          username: 'dev_user',
+          language_code: 'en'
+      };
+      return next();
+  }
 
   if (!initData) {
     console.error('Auth Error: Missing initData');
