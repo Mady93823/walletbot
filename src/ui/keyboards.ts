@@ -15,6 +15,7 @@ export const Keyboards = {
       Markup.button.callback(COPY.DASHBOARD.BUTTON_SEND, 'send_start')
     ],
     [Markup.button.callback(COPY.DASHBOARD.BUTTON_HISTORY, 'history')],
+    [Markup.button.callback('➕ Add Token', 'add_token')],
     [Markup.button.callback(COPY.DASHBOARD.BUTTON_SECURITY, 'security')]
   ]),
 
@@ -38,7 +39,7 @@ export const Keyboards = {
     [Markup.button.callback(COPY.SECURITY.BUTTON_LOCK, 'lock_wallet')],
     [Markup.button.callback(COPY.RECEIVE.BUTTON_BACK, 'back_to_dashboard')]
   ]),
-  
+
   // Specific back button fix
   backToDashboard: Markup.inlineKeyboard([
     [Markup.button.callback(COPY.RECEIVE.BUTTON_BACK, 'back_to_dashboard')]

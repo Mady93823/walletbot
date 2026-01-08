@@ -18,6 +18,8 @@ const TransactionDetails = lazy(() => import('./pages/TransactionDetails').then(
 const AssetDetails = lazy(() => import('./pages/AssetDetails').then(module => ({ default: module.AssetDetails })));
 const ManageCrypto = lazy(() => import('./pages/ManageCrypto').then(module => ({ default: module.ManageCrypto })));
 const Settings = lazy(() => import('./pages/Settings').then(module => ({ default: module.Settings })));
+const SecuritySettings = lazy(() => import('./pages/SecuritySettings').then(module => ({ default: module.SecuritySettings })));
+const NetworkSettings = lazy(() => import('./pages/NetworkSettings').then(module => ({ default: module.NetworkSettings })));
 
 function App() {
   useEffect(() => {
@@ -45,6 +47,8 @@ function App() {
                 <Route path="/asset/:id" element={<AssetDetails />} />
                 <Route path="/manage-crypto" element={<ManageCrypto />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/settings/security" element={<SecuritySettings />} />
+                <Route path="/settings/networks" element={<NetworkSettings />} />
               </Routes>
             </AnimatePresence>
           </Suspense>

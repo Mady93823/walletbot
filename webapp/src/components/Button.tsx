@@ -1,4 +1,4 @@
-import { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import clsx from 'clsx';
 import { Loader2 } from 'lucide-react';
 
@@ -9,17 +9,17 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
-export const Button = ({ 
-  variant = 'primary', 
-  isLoading, 
-  fullWidth, 
-  className, 
-  children, 
+export const Button = ({
+  variant = 'primary',
+  isLoading,
+  fullWidth,
+  className,
+  children,
   disabled,
-  ...props 
+  ...props
 }: ButtonProps) => {
   const baseStyles = "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100";
-  
+
   const variants = {
     primary: "bg-primary text-white hover:bg-blue-600 shadow-lg shadow-blue-500/20",
     secondary: "bg-secondary text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20",
@@ -28,7 +28,7 @@ export const Button = ({
   };
 
   return (
-    <button 
+    <button
       className={clsx(
         baseStyles,
         variants[variant],

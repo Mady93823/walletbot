@@ -3,17 +3,19 @@ import prisma from './prisma';
 import { WalletService } from './walletService';
 import { ethers } from 'ethers';
 import { Prisma } from '@prisma/client';
+import { logger } from '../utils/logger';
 
 // Use Sepolia Testnet Public RPC
-const RPC_URL = process.env.RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com';
-const provider = new ethers.JsonRpcProvider(RPC_URL); 
+// Use Sepolia Testnet Public RPC
+const DEFAULT_RPC_URL = process.env.RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com';
+const defaultProvider = new ethers.JsonRpcProvider(DEFAULT_RPC_URL);
 
 export const TransactionService = {
   getHistory: async (telegramId: number) => {
     const user = await prisma.user.findUnique({
       where: { telegram_id: BigInt(telegramId) }
     });
-    
+
     if (!user) return [];
 
     const txs = await prisma.transaction.findMany({
@@ -34,21 +36,21 @@ export const TransactionService = {
 
     // --- TESTING MODE: INJECT FAKE DEPOSIT ---
     if (history.length === 0) {
-        history.push({
-            id: '999999',
-            type: 'Received',
-            amount: '1.0',
-            symbol: 'ETH',
-            status: 'success',
-            timestamp: new Date().toISOString(),
-            hash: '0xTestnetFaucetDeposit...'
-        });
+      history.push({
+        id: '999999',
+        type: 'Received',
+        amount: '1.0',
+        symbol: 'ETH',
+        status: 'success',
+        timestamp: new Date().toISOString(),
+        hash: '0xTestnetFaucetDeposit...'
+      });
     }
 
     return history;
   },
 
-  sendTransaction: async (telegramId: number, to: string, amount: string) => {
+  sendTransaction: async (telegramId: number, to: string, amount: string, rpcUrl?: string, chainId?: number) => {
     const user = await prisma.user.findUnique({
       where: { telegram_id: BigInt(telegramId) },
       include: { wallet: true }
@@ -60,16 +62,21 @@ export const TransactionService = {
     const walletData = await WalletService.getWallet(telegramId);
     if (!walletData) throw new Error('Wallet data unavailable');
 
+    // Use correct provider
+    const activeProvider = rpcUrl ? new ethers.JsonRpcProvider(rpcUrl) : defaultProvider;
+
     // Default to ETH for now, but scalable to other assets
-    const currentBalanceStr = await walletData.getBalance('ETH', 'ETH'); 
-    
+    // FUTURE: Use activeProvider for balance check if we want real-time network balance
+    // For now, we check local DB balance which tracks all supported chains
+    const currentBalanceStr = await walletData.getBalance('ETH', 'ETH');
+
     // Use Prisma.Decimal for precise comparison
     const currentBalance = new Prisma.Decimal(currentBalanceStr);
     const amountDec = new Prisma.Decimal(amount);
     const feeDec = new Prisma.Decimal('0.001'); // Fixed buffer
 
     if (currentBalance.lessThan(amountDec.add(feeDec))) {
-       throw new Error(`Insufficient funds. Balance: ${currentBalance}, Required: ${amountDec.add(feeDec)}`);
+      throw new Error(`Insufficient funds. Balance: ${currentBalance}, Required: ${amountDec.add(feeDec)}`);
     }
 
     // 1. Create Pending Transaction Record
@@ -79,39 +86,41 @@ export const TransactionService = {
       data: {
         user_id: user.id,
         to_address: to,
-        amount: amount, 
+        amount: amount,
         status: 'pending',
-        chain: 'ETH'
+        chain: chainId ? `CHAIN-${chainId}` : 'ETH'
       }
     });
 
     try {
       // 2. Perform Blockchain Transaction
       // Note: This needs the decryption logic
-      const signer = await WalletService.getSigner(telegramId, provider);
-      
+      const signer = await WalletService.getSigner(telegramId, activeProvider);
+
       // --- TESTING MODE: MOCK SEND ---
       // Skip actual blockchain call to avoid INSUFFICIENT_FUNDS error
       // Remove this block to go live
-      const isTestMode = true; 
-      
+      const isTestMode = true;
+
       let txHash;
-      
-      if (isTestMode) {
-          console.log(`[TEST MODE] Mocking send transaction to ${to} for ${amount} ETH`);
-          // Use a realistic looking hash for UX testing (valid hex, 64 chars)
-          const randomHex = Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('');
-          txHash = '0x' + randomHex; 
-          // Simulate network delay
-          await new Promise(resolve => setTimeout(resolve, 1000));
+
+      if (isTestMode && !rpcUrl) {
+        logger.info(`[TEST MODE] Mocking send transaction to ${to} for ${amount} ETH`);
+        // Use a realistic looking hash for UX testing (valid hex, 64 chars)
+        const randomHex = Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+        txHash = '0x' + randomHex;
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
       } else {
-          const txResponse = await signer.sendTransaction({
-            to: to,
-            value: ethers.parseEther(amount)
-          });
-          txHash = txResponse.hash;
+        if (rpcUrl) logger.info(`Sending transaction via custom RPC: ${rpcUrl}`);
+
+        const txResponse = await signer.sendTransaction({
+          to: to,
+          value: ethers.parseEther(amount)
+        });
+        txHash = txResponse.hash;
       }
-      
+
       // 3. Update Record with Hash
       await prisma.transaction.update({
         where: { id: txRecord.id },
@@ -125,54 +134,54 @@ export const TransactionService = {
       // If the recipient is also a user in our DB, create a "Received" record for them
       try {
         const recipientWallet = await prisma.wallet.findFirst({
-            where: { address: to }
+          where: { address: to }
         });
 
         if (recipientWallet) {
-            console.log(`[TEST MODE] Recipient found (User ID: ${recipientWallet.user_id}). Creating receive record.`);
-            await prisma.transaction.create({
-                data: {
-                    user_id: recipientWallet.user_id,
-                    to_address: 'unknown', // Marks it as 'Received' based on current getHistory logic
-                    amount: amount,
-                    status: 'success',
-                    chain: 'ETH',
-                    tx_hash: txHash
-                }
-            });
-
-            // UPDATE ASSET BALANCES (Precise)
-            // 1. Deduct from Sender
-            const amountDec = new Prisma.Decimal(amount);
-            const senderAsset = await prisma.asset.findFirst({
-                where: { wallet_id: user.wallet.id, symbol: 'ETH' } // Assuming ETH for now
-            });
-            if (senderAsset) {
-                await prisma.asset.update({
-                    where: { id: senderAsset.id },
-                    data: { balance: { decrement: amountDec } }
-                });
+          logger.info(`[TEST MODE] Recipient found (User ID: ${recipientWallet.user_id}). Creating receive record.`);
+          await prisma.transaction.create({
+            data: {
+              user_id: recipientWallet.user_id,
+              to_address: 'unknown', // Marks it as 'Received' based on current getHistory logic
+              amount: amount,
+              status: 'success',
+              chain: 'ETH',
+              tx_hash: txHash
             }
+          });
 
-            // 2. Add to Recipient
-            const recipientAsset = await prisma.asset.findFirst({
-                where: { wallet_id: recipientWallet.id, symbol: 'ETH' }
+          // UPDATE ASSET BALANCES (Precise)
+          // 1. Deduct from Sender
+          const amountDec = new Prisma.Decimal(amount);
+          const senderAsset = await prisma.asset.findFirst({
+            where: { wallet_id: user.wallet.id, symbol: 'ETH' } // Assuming ETH for now
+          });
+          if (senderAsset) {
+            await prisma.asset.update({
+              where: { id: senderAsset.id },
+              data: { balance: { decrement: amountDec } }
             });
-            if (recipientAsset) {
-                await prisma.asset.update({
-                    where: { id: recipientAsset.id },
-                    data: { balance: { increment: amountDec } }
-                });
-            }
+          }
+
+          // 2. Add to Recipient
+          const recipientAsset = await prisma.asset.findFirst({
+            where: { wallet_id: recipientWallet.id, symbol: 'ETH' }
+          });
+          if (recipientAsset) {
+            await prisma.asset.update({
+              where: { id: recipientAsset.id },
+              data: { balance: { increment: amountDec } }
+            });
+          }
         }
       } catch (internalErr) {
-          console.error('[TEST MODE] Failed to create recipient record:', internalErr);
+        logger.error('[TEST MODE] Failed to create recipient record:', internalErr);
       }
-      
+
       return { success: true, hash: txHash };
 
     } catch (error) {
-      console.error('Tx Failed:', error);
+      logger.error('Tx Failed:', error);
       await prisma.transaction.update({
         where: { id: txRecord.id },
         data: { status: 'failed' }
@@ -181,12 +190,13 @@ export const TransactionService = {
     }
   },
 
-  estimateFee: async () => {
-    const feeData = await provider.getFeeData();
+  estimateFee: async (rpcUrl?: string) => {
+    const activeProvider = rpcUrl ? new ethers.JsonRpcProvider(rpcUrl) : defaultProvider;
+    const feeData = await activeProvider.getFeeData();
     // Simple estimation for standard transfer (21000 gas)
     if (feeData.gasPrice) {
-        const fee = 21000n * feeData.gasPrice;
-        return ethers.formatEther(fee);
+      const fee = 21000n * feeData.gasPrice;
+      return ethers.formatEther(fee);
     }
     return '0.001'; // Fallback
   }

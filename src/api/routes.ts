@@ -5,8 +5,10 @@ import { TransactionService } from '../services/transactionService';
 import { UserService } from '../services/userService';
 import { SecurityService } from '../services/securityService';
 import { validateTelegramWebAppData as authMiddleware } from './middleware/auth';
+import { validate, schemas } from './middleware/validation';
 import prisma from '../services/prisma';
 import { createWalletLimiter } from './middleware/rateLimit';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -27,11 +29,11 @@ router.post('/user/me', async (req, res) => {
 });
 
 // Security Routes
-router.post('/security/set-pin', async (req, res) => {
+router.post('/security/set-pin', validate(schemas.setPin), async (req, res) => {
   try {
     const { pin } = req.body;
     if (!pin || pin.length < 4) throw new Error('Invalid PIN');
-    
+
     // Check if PIN already exists? Logic implies setPin can update it too, 
     // but usually we want a change-pin flow. For now, we allow setting.
     await SecurityService.setPin(req.user!.id, pin);
@@ -41,7 +43,7 @@ router.post('/security/set-pin', async (req, res) => {
   }
 });
 
-router.post('/security/verify-pin', async (req, res) => {
+router.post('/security/verify-pin', validate(schemas.verifyPin), async (req, res) => {
   try {
     const { pin } = req.body;
     const isValid = await SecurityService.verifyPin(req.user!.id, pin);
@@ -64,26 +66,26 @@ router.post('/wallet/create', createWalletLimiter, async (req, res) => {
 router.get('/assets', async (req, res) => {
   try {
     // Remove redundant WalletService call that was causing 500 error if wallet missing
-    
+
     // Fetch user and wallet from DB to get the internal wallet ID
-    const user = await prisma.user.findUnique({ 
+    const user = await prisma.user.findUnique({
       where: { telegram_id: BigInt(req.user!.id) },
       include: { wallet: true }
     });
-    
+
     const dbWallet = user?.wallet;
     if (!dbWallet) {
       // If wallet not found, return empty assets list instead of crashing
       res.json({ assets: [] });
       return;
     }
-    
+
     let assets = await getAssets(dbWallet.id);
-    
+
     // Auto-initialize default assets if they are missing or incomplete (e.g. new coins added)
     if (assets.length < DEFAULT_ASSETS.length) {
-        await initializeAssets(dbWallet.id);
-        assets = await getAssets(dbWallet.id);
+      await initializeAssets(dbWallet.id);
+      assets = await getAssets(dbWallet.id);
     }
 
     // Auto-repair balances for testnet (fix negative balances/missing airdrops)
@@ -93,12 +95,12 @@ router.get('/assets', async (req, res) => {
 
     res.json({ assets });
   } catch (error: any) {
-    console.error('Assets Error:', error);
+    logger.error('Assets Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-router.post('/assets/toggle', async (req, res) => {
+router.post('/assets/toggle', validate(schemas.toggleAsset), async (req, res) => {
   try {
     const { assetId, isEnabled } = req.body;
     await toggleAsset(assetId, isEnabled);
@@ -108,16 +110,16 @@ router.post('/assets/toggle', async (req, res) => {
   }
 });
 
-router.post('/assets/custom', async (req, res) => {
+router.post('/assets/custom', validate(schemas.addCustomAsset), async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({ 
+    const user = await prisma.user.findUnique({
       where: { telegram_id: BigInt(req.user!.id) },
       include: { wallet: true }
     });
-    
+
     const dbWallet = user?.wallet;
     if (!dbWallet) throw new Error('Wallet not found');
-    
+
     const asset = await addCustomAsset(dbWallet.id, req.body);
     res.json({ success: true, asset });
   } catch (error: any) {
@@ -137,9 +139,10 @@ router.post('/wallet/history', async (req, res) => {
 });
 
 // Send Transaction (Draft/Estimate)
-router.post('/transaction/estimate', async (req, res) => {
+router.post('/transaction/estimate', validate(schemas.estimateFee), async (req, res) => {
   try {
-    const fee = await TransactionService.estimateFee();
+    const { rpcUrl } = req.body;
+    const fee = await TransactionService.estimateFee(rpcUrl);
     res.json({ fee });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -147,17 +150,17 @@ router.post('/transaction/estimate', async (req, res) => {
 });
 
 // Send Transaction (Confirm)
-router.post('/transaction/send', async (req, res) => {
+router.post('/transaction/send', validate(schemas.sendTransaction), async (req, res) => {
   try {
-    const { to, amount, pin } = req.body;
+    const { to, amount, pin, rpcUrl, chainId } = req.body;
     const userId = req.user!.id;
 
     // Verify PIN
     const validPin = await SecurityService.verifyPin(userId, pin);
     if (!validPin) return res.status(403).json({ error: 'Invalid PIN' });
 
-    const result = await TransactionService.sendTransaction(userId, to, amount);
-    
+    const result = await TransactionService.sendTransaction(userId, to, amount, rpcUrl, chainId);
+
     if (result.success) {
       res.json({ success: true, hash: result.hash });
     } else {

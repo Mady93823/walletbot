@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import prisma from './prisma';
+import { logger } from '../utils/logger';
 
 export interface AssetInput {
   symbol: string;
@@ -37,7 +38,7 @@ export const DEFAULT_ASSETS: AssetInput[] = [
 export const initializeAssets = async (walletId: string) => {
   for (const asset of DEFAULT_ASSETS) {
     const { defaultEnabled, ...assetData } = asset;
-    
+
     await prisma.asset.upsert({
       where: {
         wallet_id_symbol_chain: {
@@ -65,9 +66,9 @@ export const initializeAssets = async (walletId: string) => {
 export const ensureDefaultBalances = async (walletId: string) => {
   // Fix for negative balances or missing initial testnet airdrops
   // This ensures users always have at least 0 (no debt) and re-applies airdrop if needed
-  
+
   const assets = await prisma.asset.findMany({
-    where: { 
+    where: {
       wallet_id: walletId,
       symbol: { in: ['ETH', 'USDT'] }
     }
@@ -76,11 +77,11 @@ export const ensureDefaultBalances = async (walletId: string) => {
   for (const asset of assets) {
     // Check if balance is negative (due to migration issue)
     if (asset.balance.isNegative()) {
-       console.log(`[Auto-Repair] Resetting negative balance for ${asset.symbol} (Wallet: ${walletId})`);
-       await prisma.asset.update({
-         where: { id: asset.id },
-         data: { balance: 1.0 } // Reset to default airdrop amount
-       });
+      logger.info(`[Auto-Repair] Resetting negative balance for ${asset.symbol} (Wallet: ${walletId})`);
+      await prisma.asset.update({
+        where: { id: asset.id },
+        data: { balance: 1.0 } // Reset to default airdrop amount
+      });
     }
   }
 };

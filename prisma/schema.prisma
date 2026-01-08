@@ -19,8 +19,20 @@ model User {
   wallet      Wallet?
   security    Security?
   transactions Transaction[]
+  session     Session?
 
   @@map("users")
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  user_id    String   @unique
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  step       String   @default("IDLE")
+  data       Json     @default("{}")
+  updated_at DateTime @updatedAt
+
+  @@map("sessions")
 }
 
 model Wallet {

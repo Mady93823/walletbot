@@ -1,0 +1,61 @@
+{"level":"info","message":"Starting bot...","timestamp":"2026-01-07 22:38:06"}
+{"level":"info","message":"Starting bot...","timestamp":"2026-01-07 22:38:42"}
+{"level":"info","message":"Starting bot...","timestamp":"2026-01-07 22:39:15"}
+{"level":"info","message":"Starting bot...","timestamp":"2026-01-07 22:39:19"}
+{"level":"info","message":"🚀 API Server running on port 3000","timestamp":"2026-01-07 22:39:19"}
+{"level":"info","message":"Starting bot...","timestamp":"2026-01-07 22:39:25"}
+{"level":"info","message":"🚀 API Server running on port 3000","timestamp":"2026-01-07 22:39:25"}
+{"level":"info","message":"[API] POST /api/user/me","timestamp":"2026-01-07 22:39:27"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:39:27"}
+{"level":"info","message":"[API] GET /api/assets","timestamp":"2026-01-07 22:39:27"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:39:27"}
+{"level":"info","message":"[API] POST /api/user/me","timestamp":"2026-01-07 22:39:27"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:39:27"}
+{"level":"info","message":"[API] GET /api/assets","timestamp":"2026-01-07 22:39:28"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:39:28"}
+{"level":"info","message":"Starting bot...","timestamp":"2026-01-07 22:40:16"}
+{"level":"info","message":"🚀 API Server running on port 3000","timestamp":"2026-01-07 22:40:16"}
+{"level":"info","message":"[API] POST /api/user/me","timestamp":"2026-01-07 22:40:29"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:40:29"}
+{"level":"info","message":"[API] GET /api/assets","timestamp":"2026-01-07 22:40:29"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:40:29"}
+{"level":"info","message":"[API] POST /api/user/me","timestamp":"2026-01-07 22:40:29"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:40:29"}
+{"level":"info","message":"[API] GET /api/assets","timestamp":"2026-01-07 22:40:29"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:40:29"}
+{"level":"info","message":"[API] POST /api/wallet/history","timestamp":"2026-01-07 22:41:02"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:41:02"}
+{"level":"info","message":"[API] POST /api/wallet/history","timestamp":"2026-01-07 22:41:02"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:41:02"}
+{"level":"info","message":"[API] POST /api/user/me","timestamp":"2026-01-07 22:45:50"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:45:50"}
+{"level":"info","message":"[API] POST /api/user/me","timestamp":"2026-01-07 22:45:50"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:45:50"}
+{"level":"info","message":"[API] POST /api/user/me","timestamp":"2026-01-07 22:46:27"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:46:27"}
+{"level":"info","message":"[API] GET /api/assets","timestamp":"2026-01-07 22:46:27"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:46:27"}
+{"level":"info","message":"[API] POST /api/user/me","timestamp":"2026-01-07 22:46:27"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:46:27"}
+{"level":"info","message":"[API] GET /api/assets","timestamp":"2026-01-07 22:46:28"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:46:28"}
+{"level":"info","message":"Starting bot...","timestamp":"2026-01-07 22:50:45"}
+{"level":"info","message":"🚀 API Server running on port 3000","timestamp":"2026-01-07 22:50:45"}
+{"level":"info","message":"Starting bot...","timestamp":"2026-01-07 22:50:59"}
+{"level":"info","message":"🚀 API Server running on port 3000","timestamp":"2026-01-07 22:50:59"}
+{"level":"info","message":"[API] POST /api/user/me","timestamp":"2026-01-07 22:51:36"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:51:36"}
+{"level":"info","message":"[API] POST /api/user/me","timestamp":"2026-01-07 22:51:36"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:51:36"}
+{"level":"info","message":"[API] GET /api/assets","timestamp":"2026-01-07 22:51:36"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:51:36"}
+{"level":"info","message":"[API] GET /api/assets","timestamp":"2026-01-07 22:51:36"}
+{"level":"info","message":"Auth Success - User: 5743552655","timestamp":"2026-01-07 22:51:36"}
+{"level":"info","message":"Starting bot...","timestamp":"2026-01-07 22:54:07"}
+{"level":"info","message":"🚀 API Server running on port 3000","timestamp":"2026-01-07 22:54:07"}
+{"level":"info","message":"Starting bot...","timestamp":"2026-01-07 22:55:55"}
+{"level":"info","message":"🚀 API Server running on port 3000","timestamp":"2026-01-07 22:55:55"}
+{"level":"info","message":"Starting bot...","timestamp":"2026-01-08 16:51:15"}
+{"level":"info","message":"🚀 API Server running on port 3000","timestamp":"2026-01-08 16:51:15"}
+{"level":"info","message":"SIGINT received","timestamp":"2026-01-08 16:54:14"}
+{"level":"info","message":"Bot started!","timestamp":"2026-01-08 16:54:15"}

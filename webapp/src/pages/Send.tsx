@@ -8,9 +8,9 @@ import { PinModal } from '../components/PinModal';
 import { AssetSelectionModal } from '../components/AssetSelectionModal';
 import { ContactsModal } from '../components/ContactsModal';
 import { isValidAddress, truncateAddress } from '../utils/validation';
-import { 
-  ArrowLeft, CheckCircle2, AlertCircle, 
-  Wallet, Zap, FileText, AlertTriangle, 
+import {
+  ArrowLeft, CheckCircle2, AlertCircle,
+  Wallet, Zap, FileText, AlertTriangle,
   ScanLine, ChevronDown, History
 } from 'lucide-react';
 import WebApp from '@twa-dev/sdk';
@@ -56,7 +56,7 @@ export const Send = () => {
   // Validation Logic
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!to) {
       newErrors.to = 'Recipient address is required';
     } else if (selectedAsset && !isValidAddress(to, selectedAsset.chain)) {
@@ -108,12 +108,31 @@ export const Send = () => {
   const handleSend = async (pin: string) => {
     setShowPin(false);
     setIsLoading(true);
-    
+
     try {
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const res = await walletApi.sendTransaction(to, amount, pin, memo, feeLevel, selectedAsset?.id);
+
+      // Retrieve active custom network if any
+      const activeNetId = localStorage.getItem('active_network_id');
+      const customOnes = JSON.parse(localStorage.getItem('custom_networks') || '[]');
+      const allNetworks = [
+        { id: 'eth-sepolia', rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com', chainId: 11155111 },
+        { id: 'eth-mainnet', rpcUrl: 'https://mainnet.infura.io/v3/YOUR-KEY', chainId: 1 },
+        ...customOnes
+      ];
+      const activeNet = allNetworks.find((n: any) => n.id === activeNetId);
+
+      const res = await walletApi.sendTransaction(
+        to,
+        amount,
+        pin,
+        memo,
+        feeLevel,
+        selectedAsset?.id,
+        activeNet?.rpcUrl,
+        activeNet?.chainId
+      );
       if (res.data.success) {
         setResult({ success: true, hash: res.data.hash });
         setStep(3);
@@ -132,7 +151,7 @@ export const Send = () => {
     <div className="min-h-screen bg-[#0F172A] pb-24 text-white">
       {/* Header */}
       <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0F172A]/95 backdrop-blur z-20">
-        <button 
+        <button
           onClick={() => {
             if (step === 1) {
               setStep(0);
@@ -142,7 +161,7 @@ export const Send = () => {
             } else {
               setStep(step - 1);
             }
-          }} 
+          }}
           className="p-2 -ml-2 text-slate-400 hover:text-white transition-colors"
           disabled={isLoading || step === 3}
         >
@@ -172,13 +191,13 @@ export const Send = () => {
 
         {/* Step 1: Input */}
         {step === 1 && selectedAsset && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className="space-y-6"
           >
             {/* Selected Asset Header */}
-            <div 
+            <div
               onClick={() => setShowAssetModal(true)}
               className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 flex items-center justify-between cursor-pointer hover:bg-slate-800 transition-colors"
             >
@@ -201,8 +220,8 @@ export const Send = () => {
                 </span>
               </label>
               <div className="relative">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={to}
                   onChange={(e) => {
                     setTo(e.target.value);
@@ -212,14 +231,14 @@ export const Send = () => {
                   className={`w-full bg-slate-800 border ${errors.to ? 'border-red-500' : 'border-slate-700'} rounded-xl p-4 pr-24 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors font-mono text-sm`}
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
-                  <button 
+                  <button
                     onClick={() => setShowContactsModal(true)}
                     className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
                     title="Contacts"
                   >
                     <History className="w-5 h-5" />
                   </button>
-                  <button 
+                  <button
                     onClick={handleScanQr}
                     className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
                     title="Scan QR"
@@ -235,8 +254,8 @@ export const Send = () => {
             <div className="space-y-2">
               <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Amount</label>
               <div className="relative">
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   value={amount}
                   onChange={(e) => {
                     setAmount(e.target.value);
@@ -247,7 +266,7 @@ export const Send = () => {
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                   <span className="text-sm font-bold text-slate-500">{selectedAsset.symbol}</span>
-                  <button 
+                  <button
                     className="text-xs font-medium text-blue-500 bg-blue-500/10 px-2 py-1 rounded hover:bg-blue-500/20"
                     onClick={() => setAmount(selectedAsset.balance.toString())}
                   >
@@ -268,11 +287,10 @@ export const Send = () => {
                   <button
                     key={key}
                     onClick={() => setFeeLevel(key)}
-                    className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all ${
-                      feeLevel === key 
-                        ? 'bg-blue-600 border-blue-500 shadow-lg shadow-blue-500/20' 
+                    className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all ${feeLevel === key
+                        ? 'bg-blue-600 border-blue-500 shadow-lg shadow-blue-500/20'
                         : 'bg-slate-800 border-slate-700 hover:border-slate-600'
-                    }`}
+                      }`}
                   >
                     <span className="text-xs font-medium">{option.label}</span>
                     <span className="text-xs opacity-70">{option.time}</span>
@@ -287,8 +305,8 @@ export const Send = () => {
               <label className="text-xs font-medium text-slate-400 uppercase tracking-wider flex items-center gap-2">
                 <FileText className="w-3 h-3" /> Memo (Optional)
               </label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
                 placeholder="Add a note..."
@@ -304,7 +322,7 @@ export const Send = () => {
 
         {/* Step 2: Review */}
         {step === 2 && selectedAsset && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             className="space-y-6"
@@ -353,8 +371,8 @@ export const Send = () => {
               </p>
             </div>
 
-            <Button 
-              fullWidth 
+            <Button
+              fullWidth
               variant="primary"
               onClick={() => setShowPin(true)}
               disabled={isLoading}
@@ -366,7 +384,7 @@ export const Send = () => {
 
         {/* Step 3: Result */}
         {step === 3 && result && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center justify-center space-y-6 text-center py-8"
@@ -374,12 +392,12 @@ export const Send = () => {
             <div className={`w-24 h-24 rounded-full flex items-center justify-center ${result.success ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
               {result.success ? <CheckCircle2 className="w-12 h-12" /> : <AlertCircle className="w-12 h-12" />}
             </div>
-            
+
             <div className="space-y-2">
               <h2 className="text-2xl font-bold">{result.success ? 'Transaction Sent!' : 'Failed'}</h2>
               <p className="text-slate-400 max-w-xs mx-auto text-sm">
-                {result.success 
-                  ? 'Your transaction has been broadcast to the network successfully.' 
+                {result.success
+                  ? 'Your transaction has been broadcast to the network successfully.'
                   : result.error}
               </p>
             </div>
@@ -390,10 +408,10 @@ export const Send = () => {
                   <p className="text-xs text-slate-500 mb-1 uppercase">Transaction Hash</p>
                   <p className="font-mono text-xs break-all text-blue-400">{result.hash}</p>
                 </div>
-                
-                <Button 
-                  variant="outline" 
-                  fullWidth 
+
+                <Button
+                  variant="outline"
+                  fullWidth
                   onClick={() => {
                     if (result.hash && result.hash.startsWith('0x') && result.hash.length === 66) {
                       WebApp.openLink(`https://sepolia.etherscan.io/tx/${result.hash}`);
@@ -411,9 +429,9 @@ export const Send = () => {
               <Button fullWidth onClick={() => navigate('/')}>
                 Back to Dashboard
               </Button>
-              <Button 
-                variant="secondary" 
-                fullWidth 
+              <Button
+                variant="secondary"
+                fullWidth
                 onClick={() => {
                   setStep(0);
                   setTo('');
@@ -431,22 +449,22 @@ export const Send = () => {
       </div>
 
       {/* Asset Selection Modal */}
-      <AssetSelectionModal 
-        isOpen={showAssetModal} 
+      <AssetSelectionModal
+        isOpen={showAssetModal}
         onClose={() => {
-            if (step === 0 && !selectedAsset) {
-                // If closing on initial step without selection, go back
-                navigate('/');
-            } else {
-                setShowAssetModal(false);
-            }
+          if (step === 0 && !selectedAsset) {
+            // If closing on initial step without selection, go back
+            navigate('/');
+          } else {
+            setShowAssetModal(false);
+          }
         }}
         onSelect={handleAssetSelect}
         assets={assets.filter(a => a.is_enabled)}
       />
 
-      <ContactsModal 
-        isOpen={showContactsModal} 
+      <ContactsModal
+        isOpen={showContactsModal}
         onClose={() => setShowContactsModal(false)}
         onSelect={(address) => {
           setTo(address);
@@ -455,9 +473,9 @@ export const Send = () => {
       />
 
       {/* PIN Modal */}
-      <PinModal 
-        isOpen={showPin} 
-        onClose={() => setShowPin(false)} 
+      <PinModal
+        isOpen={showPin}
+        onClose={() => setShowPin(false)}
         onConfirm={handleSend}
         title="Enter PIN to Confirm"
       />

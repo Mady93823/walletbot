@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import clsx from 'clsx';
 
 interface CardProps {
@@ -9,7 +9,7 @@ interface CardProps {
 
 export const Card = ({ children, className, onClick }: CardProps) => {
   return (
-    <div 
+    <div
       onClick={onClick}
       className={clsx(
         "bg-dark-card rounded-2xl p-4 shadow-lg border border-slate-700/50",

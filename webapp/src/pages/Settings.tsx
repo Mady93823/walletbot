@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Shield, SlidersHorizontal, LogOut, Info, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Shield, SlidersHorizontal, LogOut, Info, ChevronRight, Globe } from 'lucide-react';
 
 export const Settings = () => {
   const navigate = useNavigate();
@@ -13,16 +13,22 @@ export const Settings = () => {
       onClick: () => navigate('/manage-crypto')
     },
     {
+      icon: <Globe className="w-5 h-5 text-orange-400" />,
+      title: 'Networks',
+      description: 'Manage RPC connections & chains',
+      onClick: () => navigate('/settings/networks')
+    },
+    {
       icon: <Shield className="w-5 h-5 text-green-400" />,
       title: 'Security',
       description: 'PIN, Biometrics, and Recovery',
-      onClick: () => alert('Security settings coming soon')
+      onClick: () => navigate('/settings/security')
     },
     {
       icon: <Info className="w-5 h-5 text-purple-400" />,
       title: 'About',
       description: 'Version 1.0.0',
-      onClick: () => {}
+      onClick: () => { }
     }
   ];
 
