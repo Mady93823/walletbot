@@ -53,8 +53,10 @@ BOT_TOKEN="your_telegram_bot_token"
 ENCRYPTION_KEY="your_32_byte_hex_key"
 RPC_URL="https://ethereum-sepolia-rpc.publicnode.com"
 PORT=3000
-# Optional: Proxy URL (if running in restricted regions)
+# Optional: Proxy URL (if running in restricted regions like China/Russia/Hetzner)
 # PROXY_URL="http://user:pass@host:port"
+# Optional: Custom Telegram API Root (Reverse Proxy)
+# TELEGRAM_API_ROOT="https://api.telegram-proxy.org"
 # URL where your Web App is hosted (for production)
 WEBAPP_URL="https://your-app-url.vercel.app"
 ```

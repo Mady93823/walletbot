@@ -24,10 +24,16 @@ if (!process.env.BOT_TOKEN) {
 import { SessionService } from './services/sessionService';
 import { logger } from './utils/logger'; // [NEW]
 
-const options: any = {};
+const options: any = { telegram: {} };
+
 if (process.env.PROXY_URL) {
   logger.info(`Using proxy: ${process.env.PROXY_URL}`);
-  options.telegram = { agent: new HttpsProxyAgent(process.env.PROXY_URL) };
+  options.telegram.agent = new HttpsProxyAgent(process.env.PROXY_URL);
+}
+
+if (process.env.TELEGRAM_API_ROOT) {
+  logger.info(`Using custom API Root: ${process.env.TELEGRAM_API_ROOT}`);
+  options.telegram.apiRoot = process.env.TELEGRAM_API_ROOT;
 }
 
 const bot = new Telegraf(process.env.BOT_TOKEN, options);
