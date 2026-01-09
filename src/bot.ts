@@ -501,6 +501,19 @@ bot.launch().then(() => {
   logger.info('Bot started!');
 }).catch((err) => {
   logger.error('Failed to start bot', err);
+  if (err.message && (err.message.includes('ETIMEDOUT') || err.message.includes('ECONNREFUSED'))) {
+    console.error('\n\n================================================================================');
+    console.error('CRITICAL ERROR: Unable to connect to Telegram servers.');
+    console.error('This is common in restricted regions (like China, Russia, or some VPS providers).');
+    console.error('--------------------------------------------------------------------------------');
+    console.error('SOLUTION:');
+    console.error('1. Open your .env file: nano .env');
+    console.error('2. Add ONE of the following lines:');
+    console.error('   If you have a proxy:       PROXY_URL="http://user:pass@host:port"');
+    console.error('   If you want a FREE fix:    TELEGRAM_API_ROOT="https://api.telegram-proxy.org"');
+    console.error('3. Save and restart the bot.');
+    console.error('================================================================================\n\n');
+  }
 });
 
 // Enable graceful stop
