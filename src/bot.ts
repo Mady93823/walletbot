@@ -12,6 +12,7 @@ import { startApiServer } from './api/server';
 import { fetchTokenMetadata } from './utils/tokenUtils';
 import * as AssetService from './services/assetService';
 import { ethers } from 'ethers';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 dotenv.config();
 
@@ -23,7 +24,13 @@ if (!process.env.BOT_TOKEN) {
 import { SessionService } from './services/sessionService';
 import { logger } from './utils/logger'; // [NEW]
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
+const options: any = {};
+if (process.env.PROXY_URL) {
+  logger.info(`Using proxy: ${process.env.PROXY_URL}`);
+  options.telegram = { agent: new HttpsProxyAgent(process.env.PROXY_URL) };
+}
+
+const bot = new Telegraf(process.env.BOT_TOKEN, options);
 
 // --- Middleware ---
 bot.use(async (ctx, next) => {
