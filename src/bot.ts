@@ -38,6 +38,32 @@ if (process.env.TELEGRAM_API_ROOT) {
 
 const bot = new Telegraf(process.env.BOT_TOKEN, options);
 
+// Debug: Validate custom API Root connection
+if (process.env.TELEGRAM_API_ROOT) {
+  (async () => {
+    try {
+      const testUrl = `${process.env.TELEGRAM_API_ROOT}/bot${process.env.BOT_TOKEN.substring(0, 5)}.../getMe`;
+      logger.info(`Testing connection to: ${testUrl}`);
+      // actually perform a real fetch to check connectivity
+      // We use the real token for the request, but logged the masked one
+      const realUrl = `${process.env.TELEGRAM_API_ROOT}/bot${process.env.BOT_TOKEN}/getMe`;
+      const response = await fetch(realUrl);
+      if (!response.ok) {
+        const text = await response.text();
+        logger.error(`❌ API Root Test Failed! Status: ${response.status}`);
+        logger.error(`Response: ${text.substring(0, 200)}`);
+        if (response.status === 404) {
+          logger.error('⚠️ 404 Error: The API Root path might be incorrect. Ensure it ends with /api if required by your proxy.');
+        }
+      } else {
+        logger.info('✅ API Root connection successful!');
+      }
+    } catch (e) {
+      logger.error(`❌ API Root Test Error: ${e.message}`);
+    }
+  })();
+}
+
 // --- Middleware ---
 bot.use(async (ctx, next) => {
   try {
