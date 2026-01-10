@@ -524,8 +524,15 @@ bot.catch((err: any, ctx: Context) => {
   logger.error(`Global Bot Error for ${ctx.updateType}`, err);
 });
 
-bot.launch().then(() => {
-  logger.info('Bot started!');
+bot.launch({
+  dropPendingUpdates: true, // Optional: Skip updates that happened while bot was offline
+  allowedUpdates: ['message', 'callback_query'], // Explicitly define allowed updates
+  webhook: process.env.WEBHOOK_DOMAIN ? {
+    domain: process.env.WEBHOOK_DOMAIN,
+    port: parseInt(process.env.PORT || '3000')
+  } : undefined
+}).then(() => {
+  logger.info('Bot started successfully!');
 }).catch((err) => {
   logger.error('Failed to start bot', err);
   if (err.message && (err.message.includes('ETIMEDOUT') || err.message.includes('ECONNREFUSED'))) {
