@@ -56,16 +56,16 @@ export const initializeAssets = async (walletId: string) => {
         wallet_id: walletId,
         ...assetData,
         is_enabled: defaultEnabled ?? true, // Default to true if not specified
-        // Airdrop 1.0 ETH and 1.0 USDT for testing purposes
-        balance: (asset.symbol === 'USDT' || asset.symbol === 'ETH') ? 1.0 : 0.0
+        // Initialize with 0.0 balance for production
+        balance: 0.0
       }
     });
   }
 };
 
 export const ensureDefaultBalances = async (walletId: string) => {
-  // Fix for negative balances or missing initial testnet airdrops
-  // This ensures users always have at least 0 (no debt) and re-applies airdrop if needed
+  // Fix for negative balances
+  // This ensures users always have at least 0 (no debt)
 
   const assets = await prisma.asset.findMany({
     where: {
@@ -80,7 +80,7 @@ export const ensureDefaultBalances = async (walletId: string) => {
       logger.info(`[Auto-Repair] Resetting negative balance for ${asset.symbol} (Wallet: ${walletId})`);
       await prisma.asset.update({
         where: { id: asset.id },
-        data: { balance: 1.0 } // Reset to default airdrop amount
+        data: { balance: 0.0 } // Reset to 0.0
       });
     }
   }
