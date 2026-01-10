@@ -67,7 +67,15 @@ if (process.env.TELEGRAM_API_ROOT && process.env.BOT_TOKEN) {
 
 // --- Middleware ---
 bot.use(async (ctx, next) => {
+  // Debug: Log incoming update
+  if (ctx.updateType === 'message' && ctx.message && 'text' in ctx.message) {
+    logger.info(`📨 Received message from ${ctx.from?.id}: ${ctx.message.text}`);
+  } else if (ctx.updateType === 'callback_query') {
+    logger.info(`🔘 Received callback from ${ctx.from?.id}: ${(ctx.callbackQuery as any).data}`);
+  }
+
   try {
+    await next();
   } catch (err) {
     logger.error('Error handling update:', err);
     try {
