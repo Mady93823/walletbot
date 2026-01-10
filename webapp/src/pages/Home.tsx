@@ -194,9 +194,8 @@ export const Home = () => {
     >
       {/* Logo */}
       <motion.div variants={itemVariants} className="flex justify-center -mb-2">
-        <Wallet className="h-16 w-auto text-blue-600" />
+        <img src="LOGO.svg" alt="Logo" className="h-16 w-auto" />
       </motion.div>
-
       {/* Header */}
       <motion.div variants={itemVariants} className="flex items-center justify-between relative z-50">
         <div className="flex items-center gap-2">
