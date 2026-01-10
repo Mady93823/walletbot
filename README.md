@@ -105,44 +105,48 @@ Since Telegram Apps require HTTPS, you need to expose your local frontend:
 
 ## 🚀 Production Deployment (aaPanel / VPS)
 
-### Option 1: The "Easy" Method (Recommended)
-This method runs both backend and frontend as Node.js processes. It's easier to configure in aaPanel.
+Follow these steps to permanently deploy your bot and frontend on a VPS.
 
-1.  **Start Everything with PM2**:
+### Step 1: Backend Deployment (PM2)
+We use **PM2** to keep the bot running 24/7.
+
+1.  **Install PM2**:
     ```bash
-    git pull
-    npm install
-    cd webapp && npm install && npm run build && cd ..
-    npm run build
-    npx pm2 start ecosystem.config.js
-    npx pm2 save
+    npm install -g pm2
     ```
-    *This starts the Backend on port 3000 and the Frontend on port 3001.*
+2.  **Build & Start**:
+    ```bash
+    npm run build
+    npm run db:push
+    pm2 start ecosystem.config.js
+    pm2 save
+    pm2 startup
+    ```
+    *(Run the command `pm2 startup` gives you to ensure auto-start on reboot)*
+
+### Step 2: Frontend Deployment (Nginx)
+We will serve the compiled React app directly via Nginx for maximum performance.
+
+1.  **Build the Frontend**:
+    ```bash
+    cd webapp
+    npm install
+    npm run build
+    ```
+    *(This creates a `dist` folder in `webapp/`)*
 
 2.  **Configure aaPanel**:
     - Go to **Websites** -> **Add Site** (e.g., `wallet.yourdomain.com`).
-    - Go to **Site Config** -> **Reverse Proxy**.
-    - Click **Add Reverse Proxy**:
-      - **Target URL**: `http://127.0.0.1:3001`
-      - **Sent Domain**: `$host`
-      - **Save**.
+    - Go to **Site Config** -> **Site Directory**.
+    - Set **Site Directory** to: `/www/wwwroot/wallet/walletbot/webapp/dist` (adjust path to match your actual path).
+    - **Save**.
 
-That's it! Your site `wallet.yourdomain.com` will now serve the frontend, and the frontend will automatically talk to the backend.
+3.  **Configure Nginx Proxy**:
+    - Open the file `NGINX_CONFIG.txt` in your project root.
+    - Copy the content.
+    - Go to **aaPanel** -> **Site Config** -> **Config (Nginx)**.
+    - Paste the content inside the `server { ... }` block.
+    - **Save** and **Restart Nginx**.
 
-### Option 2: The "Performance" Method (Nginx Static)
-Use this if you want Nginx to serve static files directly (faster, but harder config).
-
-1.  **Start Backend Only**:
-    ```bash
-    npx pm2 start ecosystem.config.js --only wallet-bot
-    ```
-
-2.  **Build Frontend**:
-    ```bash
-    cd webapp && npm run build
-    ```
-
-3.  **Configure aaPanel**:
-    - Set **Site Directory** to: `/www/wwwroot/wallet/walletbot/webapp/dist`
-    - Copy content from `NGINX_CONFIG.txt` into the **Config (Nginx)** section.
-
+### Step 3: Connect Frontend to Backend
+The `NGINX_CONFIG.txt` automatically forwards any request to `yourdomain.com/api` -> `localhost:3000/api`. No extra config needed in the frontend code!

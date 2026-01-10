@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,18 +9,6 @@ const app = express();
 // Default to 3001 to avoid conflict with Backend (3000)
 const PORT = process.env.PORT || 3001;
 const DIST_DIR = path.join(__dirname, 'dist');
-
-// Proxy API requests to Backend (Port 3000)
-// This allows serving frontend on 3001 while still accessing backend API
-app.use('/api', createProxyMiddleware({
-  target: 'http://localhost:3000',
-  changeOrigin: true,
-  ws: true, // proxy websockets
-  onError: (err, req, res) => {
-    console.error('Proxy Error:', err);
-    res.status(500).send('Proxy Error');
-  }
-}));
 
 // Middleware to set cache control headers
 const setCacheControl = (res, path) => {
