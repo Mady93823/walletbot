@@ -8,6 +8,7 @@ import { Skeleton, SkeletonCard, SkeletonList } from '../components/SkeletonLoad
 import WebApp from '@twa-dev/sdk';
 import { getNetworkDisplayName } from '../utils/validation';
 import { PinSetupModal } from '../components/PinSetupModal';
+import logo from '../assets/logo.svg';
 
 const containerVariants = {
   hidden: { opacity: 0 },
