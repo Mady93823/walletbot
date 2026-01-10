@@ -7,6 +7,7 @@
     "start": "ts-node src/bot.ts",
     "build": "tsc",
     "prod": "node dist/bot.js",
+    "db:push": "prisma db push",
     "dev": "nodemon src/bot.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint . --ext .ts",
