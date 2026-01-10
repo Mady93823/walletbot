@@ -8,6 +8,7 @@ A professional, hybrid Telegram Wallet that combines a native bot with a high-pe
   - **Bot**: Entry point, notifications, quick alerts.
   - **Web App**: Full DeFi dashboard, sending, receiving, history.
 - **Security**:
+  - **Private Proxy**: Includes a Cloudflare Worker script (`CLOUDFLARE_WORKER.js`) to bypass 403 blocks from Telegram in restricted regions.
   - AES-256 encryption for private keys.
   - Telegram Web App signature validation for API requests.
   - PIN protection (backend verification).
@@ -17,6 +18,7 @@ A professional, hybrid Telegram Wallet that combines a native bot with a high-pe
 
 ## Recent Updates
 
+- **Production Deployment Config**: Added `ecosystem.config.js` for PM2 and `NGINX_CONFIG.txt` for easy aaPanel deployment.
 - **Wallet Balance Auto-Repair**: Implemented logic to automatically detect and fix negative balances (resetting to default 1.0 ETH for testnet) ensuring data integrity between mock and real database values.
 - **Enhanced Token Management**:
   - Added strict contract address validation for custom tokens (ERC-20, TRC-20, BEP-20).
@@ -98,12 +100,53 @@ Since Telegram Apps require HTTPS, you need to expose your local frontend:
    npx ngrok http 5173
    ```
 2. Copy the HTTPS URL (e.g., `https://random-id.ngrok-free.app`).
-3. Set this URL as the **Menu Button URL** in @BotFather or use it in `WEBAPP_URL` env var.
-4. **Important**: You also need to expose the Backend API if testing on a real device, or ensure `VITE_API_URL` points to the public API URL.
 
-## Deployment
+---
 
-1. **Backend**: Deploy to a VPS (DigitalOcean, Hetzner) or PaaS (Render, Railway).
-2. **Frontend**: Deploy `webapp/dist` to Vercel, Netlify, or GitHub Pages.
-3. Update `WEBAPP_URL` in backend `.env` to point to the production frontend.
-4. Update `VITE_API_URL` in frontend build settings to point to the production backend.
+## 🚀 Production Deployment (aaPanel / VPS)
+
+Follow these steps to permanently deploy your bot and frontend on a VPS.
+
+### Step 1: Backend Deployment (PM2)
+We use **PM2** to keep the bot running 24/7.
+
+1.  **Install PM2**:
+    ```bash
+    npm install -g pm2
+    ```
+2.  **Build & Start**:
+    ```bash
+    npm run build
+    npm run db:push
+    pm2 start ecosystem.config.js
+    pm2 save
+    pm2 startup
+    ```
+    *(Run the command `pm2 startup` gives you to ensure auto-start on reboot)*
+
+### Step 2: Frontend Deployment (Nginx)
+We will serve the compiled React app directly via Nginx for maximum performance.
+
+1.  **Build the Frontend**:
+    ```bash
+    cd webapp
+    npm install
+    npm run build
+    ```
+    *(This creates a `dist` folder in `webapp/`)*
+
+2.  **Configure aaPanel**:
+    - Go to **Websites** -> **Add Site** (e.g., `wallet.yourdomain.com`).
+    - Go to **Site Config** -> **Site Directory**.
+    - Set **Site Directory** to: `/www/wwwroot/wallet/walletbot/webapp/dist` (adjust path to match your actual path).
+    - **Save**.
+
+3.  **Configure Nginx Proxy**:
+    - Open the file `NGINX_CONFIG.txt` in your project root.
+    - Copy the content.
+    - Go to **aaPanel** -> **Site Config** -> **Config (Nginx)**.
+    - Paste the content inside the `server { ... }` block.
+    - **Save** and **Restart Nginx**.
+
+### Step 3: Connect Frontend to Backend
+The `NGINX_CONFIG.txt` automatically forwards any request to `yourdomain.com/api` -> `localhost:3000/api`. No extra config needed in the frontend code!
